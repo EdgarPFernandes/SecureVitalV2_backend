@@ -54,6 +54,8 @@ func (app *application) mount() http.Handler {
 	typeAlertsHandler := type_alerts.NewHandler(typeAlertsService)
 	r.Get("/type_alerts", typeAlertsHandler.ListAlertTypes)
 
+	r.Post("/type_alerts", typeAlertsHandler.CreateAlertTypes)
+
 	return r
 }
 

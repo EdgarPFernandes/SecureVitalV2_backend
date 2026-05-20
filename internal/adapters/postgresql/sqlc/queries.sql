@@ -41,3 +41,8 @@ ORDER BY a.date DESC;
 -- name: ListTypeAlerts :many
 SELECT * FROM type_alert
 ORDER BY id DESC;
+
+-- name: CreateTypeAlert :one
+INSERT INTO type_alert (
+    id, description
+) VALUES ($1, $2) RETURNING *;

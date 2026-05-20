@@ -34,6 +34,24 @@ func (q *Queries) CreateAlert(ctx context.Context, arg CreateAlertParams) (Alert
 	return i, err
 }
 
+const createTypeAlert = `-- name: CreateTypeAlert :one
+INSERT INTO type_alert (
+    id, description
+) VALUES ($1, $2) RETURNING id, description
+`
+
+type CreateTypeAlertParams struct {
+	ID          int32  `json:"id"`
+	Description string `json:"description"`
+}
+
+func (q *Queries) CreateTypeAlert(ctx context.Context, arg CreateTypeAlertParams) (TypeAlert, error) {
+	row := q.db.QueryRow(ctx, createTypeAlert, arg.ID, arg.Description)
+	var i TypeAlert
+	err := row.Scan(&i.ID, &i.Description)
+	return i, err
+}
+
 const getDeviceByID = `-- name: GetDeviceByID :one
 SELECT id, installation_date, room, id_patient FROM device
 WHERE id = $1
