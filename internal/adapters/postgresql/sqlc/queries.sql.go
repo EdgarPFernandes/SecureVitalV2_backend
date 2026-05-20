@@ -7,6 +7,8 @@ package repo
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createAlert = `-- name: CreateAlert :one
@@ -62,24 +64,89 @@ func (q *Queries) GetTypeAlertByID(ctx context.Context, id int32) (TypeAlert, er
 }
 
 const listAlerts = `-- name: ListAlerts :many
-SELECT id, date, iddevice, idtypealert FROM alert
-ORDER BY date DESC
+SELECT
+    a.id,
+    a.date,
+    a.iddevice,
+    a.idtypealert,
+    ta.description AS alert_type_description
+FROM alert a
+         JOIN device d ON a.iddevice = d.id
+         JOIN type_alert ta ON a.idtypealert = ta.id
+ORDER BY a.date DESC
 `
 
-func (q *Queries) ListAlerts(ctx context.Context) ([]Alert, error) {
+type ListAlertsRow struct {
+	ID                   int32              `json:"id"`
+	Date                 pgtype.Timestamptz `json:"date"`
+	Iddevice             int32              `json:"iddevice"`
+	Idtypealert          int32              `json:"idtypealert"`
+	AlertTypeDescription string             `json:"alert_type_description"`
+}
+
+func (q *Queries) ListAlerts(ctx context.Context) ([]ListAlertsRow, error) {
 	rows, err := q.db.Query(ctx, listAlerts)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Alert
+	var items []ListAlertsRow
 	for rows.Next() {
-		var i Alert
+		var i ListAlertsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Date,
 			&i.Iddevice,
 			&i.Idtypealert,
+			&i.AlertTypeDescription,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAlertsByPatient = `-- name: ListAlertsByPatient :many
+SELECT
+    a.id,
+    a.date,
+    a.iddevice,
+    a.idtypealert,
+    ta.description AS alert_type_description
+FROM alert a
+         JOIN device d ON a.iddevice = d.id
+         JOIN type_alert ta ON a.idtypealert = ta.id
+WHERE d.id_patient = $1
+ORDER BY a.date DESC
+`
+
+type ListAlertsByPatientRow struct {
+	ID                   int32              `json:"id"`
+	Date                 pgtype.Timestamptz `json:"date"`
+	Iddevice             int32              `json:"iddevice"`
+	Idtypealert          int32              `json:"idtypealert"`
+	AlertTypeDescription string             `json:"alert_type_description"`
+}
+
+func (q *Queries) ListAlertsByPatient(ctx context.Context, idPatient int64) ([]ListAlertsByPatientRow, error) {
+	rows, err := q.db.Query(ctx, listAlertsByPatient, idPatient)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAlertsByPatientRow
+	for rows.Next() {
+		var i ListAlertsByPatientRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Date,
+			&i.Iddevice,
+			&i.Idtypealert,
+			&i.AlertTypeDescription,
 		); err != nil {
 			return nil, err
 		}

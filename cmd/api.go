@@ -47,6 +47,8 @@ func (app *application) mount() http.Handler {
 
 	r.Post("/alerts", alertsHandler.CreateAlert)
 
+	r.Get("/alerts/{patient_id}", alertsHandler.ListAlertsByPatient)
+
 	return r
 }
 
