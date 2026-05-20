@@ -157,3 +157,28 @@ func (q *Queries) ListAlertsByPatient(ctx context.Context, idPatient int64) ([]L
 	}
 	return items, nil
 }
+
+const listTypeAlerts = `-- name: ListTypeAlerts :many
+SELECT id, description FROM type_alert
+ORDER BY id DESC
+`
+
+func (q *Queries) ListTypeAlerts(ctx context.Context) ([]TypeAlert, error) {
+	rows, err := q.db.Query(ctx, listTypeAlerts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TypeAlert
+	for rows.Next() {
+		var i TypeAlert
+		if err := rows.Scan(&i.ID, &i.Description); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

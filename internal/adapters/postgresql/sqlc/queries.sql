@@ -35,3 +35,9 @@ FROM alert a
          JOIN type_alert ta ON a.idtypealert = ta.id
 WHERE d.id_patient = $1
 ORDER BY a.date DESC;
+
+
+
+-- name: ListTypeAlerts :many
+SELECT * FROM type_alert
+ORDER BY id DESC;
