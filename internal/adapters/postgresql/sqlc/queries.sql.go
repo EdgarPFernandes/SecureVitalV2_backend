@@ -34,6 +34,41 @@ func (q *Queries) CreateAlert(ctx context.Context, arg CreateAlertParams) (Alert
 	return i, err
 }
 
+const createPatient = `-- name: CreatePatient :one
+INSERT INTO patient (
+    name,birth_date, gender, address,emergency_contact)
+    VALUES ($1, $2, $3, $4, $5) RETURNING id, name, birth_date, gender, address, emergency_contact, created_at
+`
+
+type CreatePatientParams struct {
+	Name             string      `json:"name"`
+	BirthDate        pgtype.Date `json:"birth_date"`
+	Gender           string      `json:"gender"`
+	Address          pgtype.Text `json:"address"`
+	EmergencyContact pgtype.Text `json:"emergency_contact"`
+}
+
+func (q *Queries) CreatePatient(ctx context.Context, arg CreatePatientParams) (Patient, error) {
+	row := q.db.QueryRow(ctx, createPatient,
+		arg.Name,
+		arg.BirthDate,
+		arg.Gender,
+		arg.Address,
+		arg.EmergencyContact,
+	)
+	var i Patient
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.BirthDate,
+		&i.Gender,
+		&i.Address,
+		&i.EmergencyContact,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createTypeAlert = `-- name: CreateTypeAlert :one
 INSERT INTO type_alert (
     id, description
@@ -165,6 +200,39 @@ func (q *Queries) ListAlertsByPatient(ctx context.Context, idPatient int64) ([]L
 			&i.Iddevice,
 			&i.Idtypealert,
 			&i.AlertTypeDescription,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPatients = `-- name: ListPatients :many
+SELECT id, name, birth_date, gender, address, emergency_contact, created_at FROM patient
+ORDER BY name ASC
+`
+
+func (q *Queries) ListPatients(ctx context.Context) ([]Patient, error) {
+	rows, err := q.db.Query(ctx, listPatients)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Patient
+	for rows.Next() {
+		var i Patient
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.BirthDate,
+			&i.Gender,
+			&i.Address,
+			&i.EmergencyContact,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
