@@ -19,10 +19,6 @@ INSERT INTO alert (
 SELECT * FROM device
 WHERE id = $1;
 
--- name: GetTypeAlertByID :one
-SELECT * FROM type_alert
-WHERE id = $1;
-
 -- name: ListAlertsByPatient :many
 SELECT
     a.id,
@@ -46,3 +42,18 @@ ORDER BY id DESC;
 INSERT INTO type_alert (
     id, description
 ) VALUES ($1, $2) RETURNING *;
+
+-- name: GetTypeAlertByID :one
+SELECT * FROM type_alert
+WHERE id = $1;
+
+
+
+-- name: ListPatients :many
+SELECT * FROM patient
+ORDER BY name ASC ;
+
+-- name: CreatePatient :one
+INSERT INTO patient (
+    name,birth_date, gender, address,emergency_contact)
+    VALUES ($1, $2, $3, $4, $5) RETURNING *;
