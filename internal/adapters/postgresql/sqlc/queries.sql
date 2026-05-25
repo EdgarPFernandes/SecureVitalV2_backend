@@ -62,5 +62,12 @@ SELECT * FROM device
 WHERE id = $1;
 
 -- name: ListDevices :many
-SELECT * FROM device
+SELECT
+    d.id,
+    d.installation_date,
+    d.room,
+    d.id_patient,
+    p.name AS patient_name
+FROM device d
+            JOIN patient p ON d.id_patient = p.id
 ORDER BY installation_date ASC;

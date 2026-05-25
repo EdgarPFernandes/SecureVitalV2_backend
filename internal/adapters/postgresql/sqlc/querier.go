@@ -16,6 +16,7 @@ type Querier interface {
 	GetTypeAlertByID(ctx context.Context, id int32) (TypeAlert, error)
 	ListAlerts(ctx context.Context) ([]ListAlertsRow, error)
 	ListAlertsByPatient(ctx context.Context, idPatient int64) ([]ListAlertsByPatientRow, error)
+	ListDevices(ctx context.Context) ([]ListDevicesRow, error)
 	ListPatients(ctx context.Context) ([]Patient, error)
 	ListTypeAlerts(ctx context.Context) ([]TypeAlert, error)
 }

@@ -7,6 +7,7 @@ import (
 
 	repo "github.com/EdgarPFernandes/SecureVitalV2_backend/internal/adapters/postgresql/sqlc"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/alerts"
+	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/devices"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/patients"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/type_alerts"
 	"github.com/go-chi/chi/v5"
@@ -62,6 +63,11 @@ func (app *application) mount() http.Handler {
 	r.Get("/patients", patientsHandler.ListPatients)
 
 	r.Post("/patients", patientsHandler.CreatePatient)
+
+	devicesService := devices.NewService(repo.New(app.db), repo.New(app.db), app.db)
+	devicesHandler := devices.NewHandler(devicesService)
+	r.Get("/devices", devicesHandler.ListDevices)
+
 	return r
 }
 
