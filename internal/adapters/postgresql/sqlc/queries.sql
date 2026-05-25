@@ -15,9 +15,7 @@ INSERT INTO alert (
     iddevice, idtypealert
 ) VALUES ($1, $2) RETURNING *;
 
--- name: GetDeviceByID :one
-SELECT * FROM device
-WHERE id = $1;
+
 
 -- name: ListAlertsByPatient :many
 SELECT
@@ -57,3 +55,12 @@ ORDER BY name ASC ;
 INSERT INTO patient (
     name,birth_date, gender, address,emergency_contact)
     VALUES ($1, $2, $3, $4, $5) RETURNING *;
+
+
+-- name: GetDeviceByID :one
+SELECT * FROM device
+WHERE id = $1;
+
+-- name: ListDevices :many
+SELECT * FROM device
+ORDER BY installation_date ASC;
