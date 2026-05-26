@@ -3,10 +3,8 @@ package alerts
 import (
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/json"
-	"github.com/go-chi/chi/v5"
 )
 
 type handler struct {
@@ -45,25 +43,4 @@ func (h *handler) CreateAlert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.Write(w, http.StatusCreated, createdAlert)
-}
-
-func (h *handler) ListAlertsByPatient(w http.ResponseWriter, r *http.Request) {
-	patientIDStr := chi.URLParam(r, "patient_id")
-
-	log.Println("patient_id =", patientIDStr) // debug (optional)
-
-	patientID, err := strconv.ParseInt(patientIDStr, 10, 64)
-	if err != nil {
-		http.Error(w, "invalid patient id", http.StatusBadRequest)
-		return
-	}
-
-	alerts, err := h.service.ListAlertsByPatient(r.Context(), patientID)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	json.Write(w, http.StatusOK, alerts)
 }

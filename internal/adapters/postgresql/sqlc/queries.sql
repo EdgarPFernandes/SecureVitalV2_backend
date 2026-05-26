@@ -56,6 +56,11 @@ INSERT INTO patient (
     name,birth_date, gender, address,emergency_contact)
     VALUES ($1, $2, $3, $4, $5) RETURNING *;
 
+-- name: GetPatientByID :one
+SELECT  * FROM patient
+WHERE id = $1;
+
+
 
 -- name: GetDeviceByID :one
 SELECT * FROM device
@@ -71,3 +76,8 @@ SELECT
 FROM device d
             JOIN patient p ON d.id_patient = p.id
 ORDER BY installation_date ASC;
+
+-- name: CreateDevice :one
+INSERT INTO device (
+    installation_date, room, id_patient)
+    VALUES ($1, $2, $3) RETURNING *;

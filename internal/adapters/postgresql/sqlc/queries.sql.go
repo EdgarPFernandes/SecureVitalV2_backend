@@ -34,6 +34,30 @@ func (q *Queries) CreateAlert(ctx context.Context, arg CreateAlertParams) (Alert
 	return i, err
 }
 
+const createDevice = `-- name: CreateDevice :one
+INSERT INTO device (
+    installation_date, room, id_patient)
+    VALUES ($1, $2, $3) RETURNING id, installation_date, room, id_patient
+`
+
+type CreateDeviceParams struct {
+	InstallationDate pgtype.Timestamp `json:"installation_date"`
+	Room             pgtype.Text      `json:"room"`
+	IDPatient        int64            `json:"id_patient"`
+}
+
+func (q *Queries) CreateDevice(ctx context.Context, arg CreateDeviceParams) (Device, error) {
+	row := q.db.QueryRow(ctx, createDevice, arg.InstallationDate, arg.Room, arg.IDPatient)
+	var i Device
+	err := row.Scan(
+		&i.ID,
+		&i.InstallationDate,
+		&i.Room,
+		&i.IDPatient,
+	)
+	return i, err
+}
+
 const createPatient = `-- name: CreatePatient :one
 INSERT INTO patient (
     name,birth_date, gender, address,emergency_contact)
@@ -100,6 +124,26 @@ func (q *Queries) GetDeviceByID(ctx context.Context, id int64) (Device, error) {
 		&i.InstallationDate,
 		&i.Room,
 		&i.IDPatient,
+	)
+	return i, err
+}
+
+const getPatientByID = `-- name: GetPatientByID :one
+SELECT  id, name, birth_date, gender, address, emergency_contact, created_at FROM patient
+WHERE id = $1
+`
+
+func (q *Queries) GetPatientByID(ctx context.Context, id int64) (Patient, error) {
+	row := q.db.QueryRow(ctx, getPatientByID, id)
+	var i Patient
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.BirthDate,
+		&i.Gender,
+		&i.Address,
+		&i.EmergencyContact,
+		&i.CreatedAt,
 	)
 	return i, err
 }
