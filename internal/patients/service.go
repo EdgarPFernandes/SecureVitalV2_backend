@@ -15,6 +15,7 @@ var (
 type Service interface {
 	ListPatients(ctx context.Context) ([]repo.Patient, error)
 	CreatePatient(ctx context.Context, tempPatientParams repo.CreatePatientParams) (repo.Patient, error)
+	ListAlertsByPatient(ctx context.Context, patientID int64) ([]repo.ListAlertsByPatientRow, error)
 }
 type svc struct {
 	repoQuerier repo.Querier
@@ -59,4 +60,25 @@ func (s *svc) CreatePatient(ctx context.Context, tempPatientParams repo.CreatePa
 	}
 
 	return patient, nil
+}
+
+func (s *svc) ListAlertsByPatient(ctx context.Context, patientID int64) ([]repo.ListAlertsByPatientRow, error) {
+	rows, err := s.repoQuerier.ListAlertsByPatient(ctx, patientID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]repo.ListAlertsByPatientRow, len(rows))
+
+	for i, r := range rows {
+		resp[i] = repo.ListAlertsByPatientRow{
+			ID:                   r.ID,
+			Date:                 r.Date,
+			Iddevice:             r.Iddevice,
+			Idtypealert:          r.Idtypealert,
+			AlertTypeDescription: r.AlertTypeDescription,
+		}
+	}
+
+	return resp, nil
 }

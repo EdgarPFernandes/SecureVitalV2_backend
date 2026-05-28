@@ -1,4 +1,4 @@
-package alerts
+package users
 
 import (
 	"log"
@@ -17,30 +17,32 @@ func NewHandler(service Service) *handler {
 	}
 }
 
-func (h *handler) ListAlerts(w http.ResponseWriter, r *http.Request) {
-	alerts, err := h.service.ListAlerts(r.Context())
+func (h *handler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	users, err := h.service.ListUsers(r.Context())
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	json.Write(w, http.StatusOK, alerts)
+	json.Write(w, http.StatusOK, users)
 }
 
-func (h *handler) CreateAlert(w http.ResponseWriter, r *http.Request) {
-	var tempAlert createAlertParams
-	if err := json.Read(r, &tempAlert); err != nil {
+/*
+func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	var tempPatientParams repo.CreatePatientParams
+	if err := json.Read(r, &tempPatientParams); err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	createdAlert, err := h.service.CreateAlert(r.Context(), tempAlert)
+	createdPatient, err := h.service.CreatePatient(r.Context(), tempPatientParams)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	json.Write(w, http.StatusCreated, createdAlert)
+	json.Write(w, http.StatusCreated, createdPatient)
 }
+*/

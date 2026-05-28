@@ -7,8 +7,10 @@ import (
 
 	repo "github.com/EdgarPFernandes/SecureVitalV2_backend/internal/adapters/postgresql/sqlc"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/alerts"
+	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/devices"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/patients"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/type_alerts"
+	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/users"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5"
@@ -43,25 +45,40 @@ func (app *application) mount() http.Handler {
 		w.Write([]byte("hello world"))
 	})
 
-	alertsService := alerts.NewService(repo.New(app.db), repo.New(app.db), app.db)
-	alertsHandler := alerts.NewHandler(alertsService)
-	r.Get("/alerts", alertsHandler.ListAlerts)
+	r.Route("/api", func(r chi.Router) {
+		alertsService := alerts.NewService(repo.New(app.db), repo.New(app.db), app.db)
+		alertsHandler := alerts.NewHandler(alertsService)
+		r.Get("/alerts", alertsHandler.ListAlerts)
 
-	r.Post("/alerts", alertsHandler.CreateAlert)
+		r.Post("/alerts", alertsHandler.CreateAlert)
 
-	r.Get("/alerts/{patient_id}", alertsHandler.ListAlertsByPatient)
+		typeAlertsService := type_alerts.NewService(repo.New(app.db), repo.New(app.db), app.db)
+		typeAlertsHandler := type_alerts.NewHandler(typeAlertsService)
+		r.Get("/type_alerts", typeAlertsHandler.ListAlertTypes)
 
-	typeAlertsService := type_alerts.NewService(repo.New(app.db), repo.New(app.db), app.db)
-	typeAlertsHandler := type_alerts.NewHandler(typeAlertsService)
-	r.Get("/type_alerts", typeAlertsHandler.ListAlertTypes)
+		r.Post("/type_alerts", typeAlertsHandler.CreateAlertTypes)
 
-	r.Post("/type_alerts", typeAlertsHandler.CreateAlertTypes)
+		patientsService := patients.NewService(repo.New(app.db), repo.New(app.db), app.db)
+		patientsHandler := patients.NewHandler(patientsService)
+		r.Get("/patients", patientsHandler.ListPatients)
 
-	patientsService := patients.NewService(repo.New(app.db), repo.New(app.db), app.db)
-	patientsHandler := patients.NewHandler(patientsService)
-	r.Get("/patients", patientsHandler.ListPatients)
+		r.Post("/patients", patientsHandler.CreatePatient)
 
-	r.Post("/patients", patientsHandler.CreatePatient)
+		r.Get("/patients/{patient_id}/alerts", patientsHandler.ListAlertsByPatient)
+
+		devicesService := devices.NewService(repo.New(app.db), repo.New(app.db), app.db)
+		devicesHandler := devices.NewHandler(devicesService)
+		r.Get("/devices", devicesHandler.ListDevices)
+
+		r.Post("/devices", devicesHandler.CreateDevice)
+
+		usersService := users.NewService(repo.New(app.db), repo.New(app.db), app.db)
+		usersHandler := users.NewHandler(usersService)
+		r.Get("/users", usersHandler.ListUsers)
+
+		//r.Post("/users", usersHandler.CreateUser)
+	})
+
 	return r
 }
 

@@ -34,6 +34,30 @@ func (q *Queries) CreateAlert(ctx context.Context, arg CreateAlertParams) (Alert
 	return i, err
 }
 
+const createDevice = `-- name: CreateDevice :one
+INSERT INTO device (
+    installation_date, room, id_patient)
+    VALUES ($1, $2, $3) RETURNING id, installation_date, room, id_patient
+`
+
+type CreateDeviceParams struct {
+	InstallationDate pgtype.Timestamp `json:"installation_date"`
+	Room             pgtype.Text      `json:"room"`
+	IDPatient        int64            `json:"id_patient"`
+}
+
+func (q *Queries) CreateDevice(ctx context.Context, arg CreateDeviceParams) (Device, error) {
+	row := q.db.QueryRow(ctx, createDevice, arg.InstallationDate, arg.Room, arg.IDPatient)
+	var i Device
+	err := row.Scan(
+		&i.ID,
+		&i.InstallationDate,
+		&i.Room,
+		&i.IDPatient,
+	)
+	return i, err
+}
+
 const createPatient = `-- name: CreatePatient :one
 INSERT INTO patient (
     name,birth_date, gender, address,emergency_contact)
@@ -100,6 +124,26 @@ func (q *Queries) GetDeviceByID(ctx context.Context, id int64) (Device, error) {
 		&i.InstallationDate,
 		&i.Room,
 		&i.IDPatient,
+	)
+	return i, err
+}
+
+const getPatientByID = `-- name: GetPatientByID :one
+SELECT  id, name, birth_date, gender, address, emergency_contact, created_at FROM patient
+WHERE id = $1
+`
+
+func (q *Queries) GetPatientByID(ctx context.Context, id int64) (Patient, error) {
+	row := q.db.QueryRow(ctx, getPatientByID, id)
+	var i Patient
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.BirthDate,
+		&i.Gender,
+		&i.Address,
+		&i.EmergencyContact,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -211,6 +255,52 @@ func (q *Queries) ListAlertsByPatient(ctx context.Context, idPatient int64) ([]L
 	return items, nil
 }
 
+const listDevices = `-- name: ListDevices :many
+SELECT
+    d.id,
+    d.installation_date,
+    d.room,
+    d.id_patient,
+    p.name AS patient_name
+FROM device d
+            JOIN patient p ON d.id_patient = p.id
+ORDER BY installation_date ASC
+`
+
+type ListDevicesRow struct {
+	ID               int64            `json:"id"`
+	InstallationDate pgtype.Timestamp `json:"installation_date"`
+	Room             pgtype.Text      `json:"room"`
+	IDPatient        int64            `json:"id_patient"`
+	PatientName      string           `json:"patient_name"`
+}
+
+func (q *Queries) ListDevices(ctx context.Context) ([]ListDevicesRow, error) {
+	rows, err := q.db.Query(ctx, listDevices)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListDevicesRow
+	for rows.Next() {
+		var i ListDevicesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.InstallationDate,
+			&i.Room,
+			&i.IDPatient,
+			&i.PatientName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPatients = `-- name: ListPatients :many
 SELECT id, name, birth_date, gender, address, emergency_contact, created_at FROM patient
 ORDER BY name ASC
@@ -259,6 +349,48 @@ func (q *Queries) ListTypeAlerts(ctx context.Context) ([]TypeAlert, error) {
 	for rows.Next() {
 		var i TypeAlert
 		if err := rows.Scan(&i.ID, &i.Description); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUsers = `-- name: ListUsers :many
+SELECT id, name, email, phone_number, role, last_access
+FROM users
+ORDER BY name ASC
+`
+
+type ListUsersRow struct {
+	ID          int64            `json:"id"`
+	Name        string           `json:"name"`
+	Email       string           `json:"email"`
+	PhoneNumber pgtype.Text      `json:"phone_number"`
+	Role        string           `json:"role"`
+	LastAccess  pgtype.Timestamp `json:"last_access"`
+}
+
+func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
+	rows, err := q.db.Query(ctx, listUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUsersRow
+	for rows.Next() {
+		var i ListUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.PhoneNumber,
+			&i.Role,
+			&i.LastAccess,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
