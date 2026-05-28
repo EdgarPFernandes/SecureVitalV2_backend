@@ -358,3 +358,45 @@ func (q *Queries) ListTypeAlerts(ctx context.Context) ([]TypeAlert, error) {
 	}
 	return items, nil
 }
+
+const listUsers = `-- name: ListUsers :many
+SELECT id, name, email, phone_number, role, last_access
+FROM users
+ORDER BY name ASC
+`
+
+type ListUsersRow struct {
+	ID          int64            `json:"id"`
+	Name        string           `json:"name"`
+	Email       string           `json:"email"`
+	PhoneNumber pgtype.Text      `json:"phone_number"`
+	Role        string           `json:"role"`
+	LastAccess  pgtype.Timestamp `json:"last_access"`
+}
+
+func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
+	rows, err := q.db.Query(ctx, listUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUsersRow
+	for rows.Next() {
+		var i ListUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.PhoneNumber,
+			&i.Role,
+			&i.LastAccess,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

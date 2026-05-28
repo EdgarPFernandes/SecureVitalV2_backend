@@ -81,3 +81,13 @@ ORDER BY installation_date ASC;
 INSERT INTO device (
     installation_date, room, id_patient)
     VALUES ($1, $2, $3) RETURNING *;
+
+
+-- name: ListUsers :many
+SELECT id, name, email, phone_number, role, last_access
+FROM users
+ORDER BY name ASC;
+
+-- name: CreateUser :one
+INSERT INTO users (
+    name, email, phone_number, role, last_access)

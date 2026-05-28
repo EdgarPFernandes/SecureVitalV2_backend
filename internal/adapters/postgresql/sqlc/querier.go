@@ -21,6 +21,7 @@ type Querier interface {
 	ListDevices(ctx context.Context) ([]ListDevicesRow, error)
 	ListPatients(ctx context.Context) ([]Patient, error)
 	ListTypeAlerts(ctx context.Context) ([]TypeAlert, error)
+	ListUsers(ctx context.Context) ([]ListUsersRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

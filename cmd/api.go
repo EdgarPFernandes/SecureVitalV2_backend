@@ -10,6 +10,7 @@ import (
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/devices"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/patients"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/type_alerts"
+	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/users"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5"
@@ -70,6 +71,12 @@ func (app *application) mount() http.Handler {
 		r.Get("/devices", devicesHandler.ListDevices)
 
 		r.Post("/devices", devicesHandler.CreateDevice)
+
+		usersService := users.NewService(repo.New(app.db), repo.New(app.db), app.db)
+		usersHandler := users.NewHandler(usersService)
+		r.Get("/users", usersHandler.ListUsers)
+
+		//r.Post("/users", usersHandler.CreateUser)
 	})
 
 	return r
