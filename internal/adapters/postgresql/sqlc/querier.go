@@ -13,15 +13,18 @@ type Querier interface {
 	CreateDevice(ctx context.Context, arg CreateDeviceParams) (Device, error)
 	CreatePatient(ctx context.Context, arg CreatePatientParams) (Patient, error)
 	CreateTypeAlert(ctx context.Context, arg CreateTypeAlertParams) (TypeAlert, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	GetDeviceByID(ctx context.Context, id int64) (Device, error)
 	GetPatientByID(ctx context.Context, id int64) (Patient, error)
 	GetTypeAlertByID(ctx context.Context, id int32) (TypeAlert, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
 	ListAlerts(ctx context.Context) ([]ListAlertsRow, error)
 	ListAlertsByPatient(ctx context.Context, idPatient int64) ([]ListAlertsByPatientRow, error)
 	ListDevices(ctx context.Context) ([]ListDevicesRow, error)
 	ListPatients(ctx context.Context) ([]Patient, error)
 	ListTypeAlerts(ctx context.Context) ([]TypeAlert, error)
 	ListUsers(ctx context.Context) ([]ListUsersRow, error)
+	UpdateLastAccess(ctx context.Context, id int64) error
 }
 
 var _ Querier = (*Queries)(nil)

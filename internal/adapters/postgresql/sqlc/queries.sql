@@ -90,4 +90,29 @@ ORDER BY name ASC;
 
 -- name: CreateUser :one
 INSERT INTO users (
-    name, email, phone_number, role, last_access)
+    name,
+    email,
+    phone_number,
+    password_hash,
+    role,
+    photo
+)
+VALUES (
+           $1,
+           $2,
+           $3,
+           $4,
+           $5,
+           $6
+       )
+    RETURNING *;
+
+-- name: GetUserByEmail :one
+SELECT *
+FROM users
+WHERE email = $1;
+
+-- name: UpdateLastAccess :exec
+UPDATE users
+SET last_access = NOW()
+WHERE id = $1;

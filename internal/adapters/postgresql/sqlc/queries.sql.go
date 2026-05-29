@@ -111,6 +111,58 @@ func (q *Queries) CreateTypeAlert(ctx context.Context, arg CreateTypeAlertParams
 	return i, err
 }
 
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (
+    name,
+    email,
+    phone_number,
+    password_hash,
+    role,
+    photo
+)
+VALUES (
+           $1,
+           $2,
+           $3,
+           $4,
+           $5,
+           $6
+       )
+    RETURNING id, name, email, phone_number, password_hash, role, photo, last_access
+`
+
+type CreateUserParams struct {
+	Name         string      `json:"name"`
+	Email        string      `json:"email"`
+	PhoneNumber  pgtype.Text `json:"phone_number"`
+	PasswordHash string      `json:"password_hash"`
+	Role         string      `json:"role"`
+	Photo        pgtype.Text `json:"photo"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.Name,
+		arg.Email,
+		arg.PhoneNumber,
+		arg.PasswordHash,
+		arg.Role,
+		arg.Photo,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.PhoneNumber,
+		&i.PasswordHash,
+		&i.Role,
+		&i.Photo,
+		&i.LastAccess,
+	)
+	return i, err
+}
+
 const getDeviceByID = `-- name: GetDeviceByID :one
 SELECT id, installation_date, room, id_patient FROM device
 WHERE id = $1
@@ -157,6 +209,28 @@ func (q *Queries) GetTypeAlertByID(ctx context.Context, id int32) (TypeAlert, er
 	row := q.db.QueryRow(ctx, getTypeAlertByID, id)
 	var i TypeAlert
 	err := row.Scan(&i.ID, &i.Description)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, name, email, phone_number, password_hash, role, photo, last_access
+FROM users
+WHERE email = $1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.PhoneNumber,
+		&i.PasswordHash,
+		&i.Role,
+		&i.Photo,
+		&i.LastAccess,
+	)
 	return i, err
 }
 
@@ -399,4 +473,15 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateLastAccess = `-- name: UpdateLastAccess :exec
+UPDATE users
+SET last_access = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) UpdateLastAccess(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, updateLastAccess, id)
+	return err
 }

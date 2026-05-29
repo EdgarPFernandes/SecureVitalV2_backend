@@ -7,6 +7,7 @@ import (
 
 	repo "github.com/EdgarPFernandes/SecureVitalV2_backend/internal/adapters/postgresql/sqlc"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/alerts"
+	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/auth"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/devices"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/patients"
 	"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/type_alerts"
@@ -45,38 +46,50 @@ func (app *application) mount() http.Handler {
 		w.Write([]byte("hello world"))
 	})
 
+	usersService := users.NewService(repo.New(app.db), repo.New(app.db), app.db)
+	usersHandler := users.NewHandler(usersService)
+
+	alertsService := alerts.NewService(repo.New(app.db), repo.New(app.db), app.db)
+	alertsHandler := alerts.NewHandler(alertsService)
+
+	typeAlertsService := type_alerts.NewService(repo.New(app.db), repo.New(app.db), app.db)
+	typeAlertsHandler := type_alerts.NewHandler(typeAlertsService)
+
+	patientsService := patients.NewService(repo.New(app.db), repo.New(app.db), app.db)
+	patientsHandler := patients.NewHandler(patientsService)
+
+	devicesService := devices.NewService(repo.New(app.db), repo.New(app.db), app.db)
+	devicesHandler := devices.NewHandler(devicesService)
+
 	r.Route("/api", func(r chi.Router) {
-		alertsService := alerts.NewService(repo.New(app.db), repo.New(app.db), app.db)
-		alertsHandler := alerts.NewHandler(alertsService)
-		r.Get("/alerts", alertsHandler.ListAlerts)
+		r.Post("/register", usersHandler.RegisterUser)
+		r.Post("/login", usersHandler.Login)
 
-		r.Post("/alerts", alertsHandler.CreateAlert)
+		r.Group(func(r chi.Router) {
 
-		typeAlertsService := type_alerts.NewService(repo.New(app.db), repo.New(app.db), app.db)
-		typeAlertsHandler := type_alerts.NewHandler(typeAlertsService)
-		r.Get("/type_alerts", typeAlertsHandler.ListAlertTypes)
+			r.Use(auth.JWTMiddleware)
+			r.Use(auth.RequireRole("admin"))
 
-		r.Post("/type_alerts", typeAlertsHandler.CreateAlertTypes)
+			r.Get("/alerts", alertsHandler.ListAlerts)
 
-		patientsService := patients.NewService(repo.New(app.db), repo.New(app.db), app.db)
-		patientsHandler := patients.NewHandler(patientsService)
-		r.Get("/patients", patientsHandler.ListPatients)
+			r.Post("/alerts", alertsHandler.CreateAlert)
 
-		r.Post("/patients", patientsHandler.CreatePatient)
+			r.Get("/type_alerts", typeAlertsHandler.ListAlertTypes)
 
-		r.Get("/patients/{patient_id}/alerts", patientsHandler.ListAlertsByPatient)
+			r.Post("/type_alerts", typeAlertsHandler.CreateAlertTypes)
 
-		devicesService := devices.NewService(repo.New(app.db), repo.New(app.db), app.db)
-		devicesHandler := devices.NewHandler(devicesService)
-		r.Get("/devices", devicesHandler.ListDevices)
+			r.Get("/patients", patientsHandler.ListPatients)
 
-		r.Post("/devices", devicesHandler.CreateDevice)
+			r.Post("/patients", patientsHandler.CreatePatient)
 
-		usersService := users.NewService(repo.New(app.db), repo.New(app.db), app.db)
-		usersHandler := users.NewHandler(usersService)
-		r.Get("/users", usersHandler.ListUsers)
+			r.Get("/patients/{patient_id}/alerts", patientsHandler.ListAlertsByPatient)
 
-		//r.Post("/users", usersHandler.CreateUser)
+			r.Get("/devices", devicesHandler.ListDevices)
+
+			r.Post("/devices", devicesHandler.CreateDevice)
+
+			r.Get("/users", usersHandler.ListUsers)
+		})
 	})
 
 	return r
