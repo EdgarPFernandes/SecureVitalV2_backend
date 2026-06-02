@@ -23,18 +23,29 @@ type Service interface {
 		email string,
 		password string,
 	) (string, error)
+
+	GetMe(ctx context.Context, userID int64) (repo.User, error)
+	GetDashboard(ctx context.Context, userID int64) ([]PatientDashboard, error)
+	GetAdminDashboard(ctx context.Context) (*AdminDashboard, error)
+	GetPatientDashboard(ctx context.Context,patientID int64) (*PatientDetailsDashboard, error)
 }
 type svc struct {
 	repoQuerier repo.Querier
 	repoQueries *repo.Queries
 	db          *pgx.Conn
+
+	dashboard DashboardService
 }
 
 func NewService(repoQuerier repo.Querier, repoQueries *repo.Queries, db *pgx.Conn) Service {
+
+	dash := NewDashboardService(repoQuerier)
+
 	return &svc{
 		repoQuerier: repoQuerier,
 		repoQueries: repoQueries,
 		db:          db,
+		dashboard:   dash,
 	}
 }
 
@@ -123,4 +134,27 @@ func (s *svc) Login(
 	}
 
 	return token, nil
+}
+
+func (s *svc) GetMe(ctx context.Context, userID int64) (repo.User, error) {
+	return s.repoQueries.GetUserByID(ctx, userID)
+}
+
+func (s *svc) GetDashboard(ctx context.Context, userID int64) ([]PatientDashboard, error) {
+	return s.dashboard.GetDashboard(ctx, userID)
+}
+
+func (s *svc) GetAdminDashboard(ctx context.Context) (*AdminDashboard, error) {
+	return s.dashboard.GetAdminDashboard(ctx)
+}
+
+func (s *svc) GetPatientDashboard(
+	ctx context.Context,
+	patientID int64,
+) (*PatientDetailsDashboard, error) {
+
+	return s.dashboard.GetPatientDashboard(
+		ctx,
+		patientID,
+	)
 }

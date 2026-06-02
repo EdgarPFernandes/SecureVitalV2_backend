@@ -1,7 +1,7 @@
 
 APP=api
 MIGRATIONS=./internal/adapters/postgresql/migrations
-DB_URL=postgres://postgres:postgres@localhost:5432/mydb?sslmode=disable
+DB_URL=postgres://postgres:postgres@localhost:5432/svdb?sslmode=disable
 
 # =====================
 # GO APP
