@@ -11,6 +11,367 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countAlerts24h = `-- name: CountAlerts24h :one
+SELECT COUNT(*) 
+FROM alert a
+JOIN device d ON d.id = a.idDevice
+WHERE d.id_patient = $1
+AND a.date >= NOW() - INTERVAL '24 hours'
+`
+
+func (q *Queries) CountAlerts24h(ctx context.Context, idPatient int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countAlerts24h, idPatient)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countAlerts24hGlobal = `-- name: CountAlerts24hGlobal :one
+SELECT COUNT(*) FROM alert
+WHERE date >= NOW() - INTERVAL '24 hours'
+`
+
+func (q *Queries) CountAlerts24hGlobal(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countAlerts24hGlobal)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countAlerts7To14Days = `-- name: CountAlerts7To14Days :many
+SELECT
+  DATE(date) as day,
+  COUNT(*) as total
+FROM alert
+WHERE date >= NOW() - INTERVAL '14 days'
+  AND date < NOW() - INTERVAL '7 days'
+GROUP BY day
+ORDER BY day
+`
+
+type CountAlerts7To14DaysRow struct {
+	Day   pgtype.Date `json:"day"`
+	Total int64       `json:"total"`
+}
+
+func (q *Queries) CountAlerts7To14Days(ctx context.Context) ([]CountAlerts7To14DaysRow, error) {
+	rows, err := q.db.Query(ctx, countAlerts7To14Days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountAlerts7To14DaysRow
+	for rows.Next() {
+		var i CountAlerts7To14DaysRow
+		if err := rows.Scan(&i.Day, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countAlerts7d = `-- name: CountAlerts7d :one
+SELECT COUNT(*) 
+FROM alert a
+JOIN device d ON d.id = a.idDevice
+WHERE d.id_patient = $1
+AND a.date >= NOW() - INTERVAL '7 days'
+`
+
+func (q *Queries) CountAlerts7d(ctx context.Context, idPatient int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countAlerts7d, idPatient)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countAlerts7dGlobal = `-- name: CountAlerts7dGlobal :one
+SELECT COUNT(*) FROM alert
+WHERE date >= NOW() - INTERVAL '7 days'
+`
+
+func (q *Queries) CountAlerts7dGlobal(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countAlerts7dGlobal)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countAlertsByMonth = `-- name: CountAlertsByMonth :many
+SELECT 
+  EXTRACT(MONTH FROM a.date)::int AS month,
+  COUNT(*)::bigint AS total
+FROM alert a
+JOIN device d ON d.id = a.idDevice
+WHERE d.id_patient = $1
+GROUP BY month
+ORDER BY month
+`
+
+type CountAlertsByMonthRow struct {
+	Month int32 `json:"month"`
+	Total int64 `json:"total"`
+}
+
+func (q *Queries) CountAlertsByMonth(ctx context.Context, idPatient int64) ([]CountAlertsByMonthRow, error) {
+	rows, err := q.db.Query(ctx, countAlertsByMonth, idPatient)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountAlertsByMonthRow
+	for rows.Next() {
+		var i CountAlertsByMonthRow
+		if err := rows.Scan(&i.Month, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countAlertsByPatient = `-- name: CountAlertsByPatient :one
+SELECT COUNT(*) 
+FROM alert a
+JOIN device d ON d.id = a.idDevice
+WHERE d.id_patient = $1
+`
+
+func (q *Queries) CountAlertsByPatient(ctx context.Context, idPatient int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countAlertsByPatient, idPatient)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countAlertsByTypeGlobal = `-- name: CountAlertsByTypeGlobal :many
+SELECT
+  ta.description,
+  COUNT(*) as total
+FROM alert a
+JOIN type_alert ta ON ta.id = a.idTypeAlert
+GROUP BY ta.description
+`
+
+type CountAlertsByTypeGlobalRow struct {
+	Description string `json:"description"`
+	Total       int64  `json:"total"`
+}
+
+func (q *Queries) CountAlertsByTypeGlobal(ctx context.Context) ([]CountAlertsByTypeGlobalRow, error) {
+	rows, err := q.db.Query(ctx, countAlertsByTypeGlobal)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountAlertsByTypeGlobalRow
+	for rows.Next() {
+		var i CountAlertsByTypeGlobalRow
+		if err := rows.Scan(&i.Description, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countAlertsByYear = `-- name: CountAlertsByYear :many
+SELECT 
+  EXTRACT(YEAR FROM a.date)::int AS year,
+  COUNT(*)::bigint AS total
+FROM alert a
+JOIN device d ON d.id = a.idDevice
+WHERE d.id_patient = $1
+GROUP BY year
+ORDER BY year
+`
+
+type CountAlertsByYearRow struct {
+	Year  int32 `json:"year"`
+	Total int64 `json:"total"`
+}
+
+func (q *Queries) CountAlertsByYear(ctx context.Context, idPatient int64) ([]CountAlertsByYearRow, error) {
+	rows, err := q.db.Query(ctx, countAlertsByYear, idPatient)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountAlertsByYearRow
+	for rows.Next() {
+		var i CountAlertsByYearRow
+		if err := rows.Scan(&i.Year, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countAlertsLast12Months = `-- name: CountAlertsLast12Months :many
+SELECT
+  EXTRACT(MONTH FROM date) AS month,
+  COUNT(*) as total
+FROM alert
+WHERE date >= NOW() - INTERVAL '12 months'
+GROUP BY month
+ORDER BY month
+`
+
+type CountAlertsLast12MonthsRow struct {
+	Month pgtype.Numeric `json:"month"`
+	Total int64          `json:"total"`
+}
+
+func (q *Queries) CountAlertsLast12Months(ctx context.Context) ([]CountAlertsLast12MonthsRow, error) {
+	rows, err := q.db.Query(ctx, countAlertsLast12Months)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountAlertsLast12MonthsRow
+	for rows.Next() {
+		var i CountAlertsLast12MonthsRow
+		if err := rows.Scan(&i.Month, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countAlertsLast12MonthsGlobal = `-- name: CountAlertsLast12MonthsGlobal :many
+SELECT
+  EXTRACT(MONTH FROM date)::int AS month,
+  COUNT(*)::bigint AS total
+FROM alert
+WHERE date >= NOW() - INTERVAL '12 months'
+GROUP BY month
+ORDER BY month
+`
+
+type CountAlertsLast12MonthsGlobalRow struct {
+	Month int32 `json:"month"`
+	Total int64 `json:"total"`
+}
+
+func (q *Queries) CountAlertsLast12MonthsGlobal(ctx context.Context) ([]CountAlertsLast12MonthsGlobalRow, error) {
+	rows, err := q.db.Query(ctx, countAlertsLast12MonthsGlobal)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountAlertsLast12MonthsGlobalRow
+	for rows.Next() {
+		var i CountAlertsLast12MonthsGlobalRow
+		if err := rows.Scan(&i.Month, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countAlertsLast7Days = `-- name: CountAlertsLast7Days :many
+SELECT
+  DATE(date) as day,
+  COUNT(*) as total
+FROM alert
+WHERE date >= NOW() - INTERVAL '7 days'
+GROUP BY day
+ORDER BY day
+`
+
+type CountAlertsLast7DaysRow struct {
+	Day   pgtype.Date `json:"day"`
+	Total int64       `json:"total"`
+}
+
+func (q *Queries) CountAlertsLast7Days(ctx context.Context) ([]CountAlertsLast7DaysRow, error) {
+	rows, err := q.db.Query(ctx, countAlertsLast7Days)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountAlertsLast7DaysRow
+	for rows.Next() {
+		var i CountAlertsLast7DaysRow
+		if err := rows.Scan(&i.Day, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countManyAlertsByPatient = `-- name: CountManyAlertsByPatient :many
+SELECT
+  p.id,
+  COUNT(a.id) as total
+FROM patient p
+JOIN device d ON d.id_patient = p.id
+JOIN alert a ON a.idDevice = d.id
+GROUP BY p.id
+`
+
+type CountManyAlertsByPatientRow struct {
+	ID    int64 `json:"id"`
+	Total int64 `json:"total"`
+}
+
+func (q *Queries) CountManyAlertsByPatient(ctx context.Context) ([]CountManyAlertsByPatientRow, error) {
+	rows, err := q.db.Query(ctx, countManyAlertsByPatient)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountManyAlertsByPatientRow
+	for rows.Next() {
+		var i CountManyAlertsByPatientRow
+		if err := rows.Scan(&i.ID, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countPatients = `-- name: CountPatients :one
+SELECT COUNT(*) FROM patient
+`
+
+func (q *Queries) CountPatients(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countPatients)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createAlert = `-- name: CreateAlert :one
 INSERT INTO alert (
     iddevice, idtypealert
@@ -200,6 +561,34 @@ func (q *Queries) GetPatientByID(ctx context.Context, id int64) (Patient, error)
 	return i, err
 }
 
+const getPatientDashboardInfo = `-- name: GetPatientDashboardInfo :one
+SELECT
+    id,
+    name,
+    birth_date,
+    gender,
+    address,
+    emergency_contact,
+    created_at
+FROM patient
+WHERE id = $1
+`
+
+func (q *Queries) GetPatientDashboardInfo(ctx context.Context, id int64) (Patient, error) {
+	row := q.db.QueryRow(ctx, getPatientDashboardInfo, id)
+	var i Patient
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.BirthDate,
+		&i.Gender,
+		&i.Address,
+		&i.EmergencyContact,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getTypeAlertByID = `-- name: GetTypeAlertByID :one
 SELECT id, description FROM type_alert
 WHERE id = $1
@@ -232,6 +621,62 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.LastAccess,
 	)
 	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, name, email, phone_number, password_hash, role, photo, last_access
+FROM users
+WHERE id = $1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.PhoneNumber,
+		&i.PasswordHash,
+		&i.Role,
+		&i.Photo,
+		&i.LastAccess,
+	)
+	return i, err
+}
+
+const listAlertTypesByPatient = `-- name: ListAlertTypesByPatient :many
+SELECT ta.description, COUNT(*) as count
+FROM alert a
+JOIN type_alert ta ON ta.id = a.idTypeAlert
+JOIN device d ON d.id = a.idDevice
+WHERE d.id_patient = $1
+GROUP BY ta.description
+`
+
+type ListAlertTypesByPatientRow struct {
+	Description string `json:"description"`
+	Count       int64  `json:"count"`
+}
+
+func (q *Queries) ListAlertTypesByPatient(ctx context.Context, idPatient int64) ([]ListAlertTypesByPatientRow, error) {
+	rows, err := q.db.Query(ctx, listAlertTypesByPatient, idPatient)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAlertTypesByPatientRow
+	for rows.Next() {
+		var i ListAlertTypesByPatientRow
+		if err := rows.Scan(&i.Description, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAlerts = `-- name: ListAlerts :many
@@ -329,6 +774,104 @@ func (q *Queries) ListAlertsByPatient(ctx context.Context, idPatient int64) ([]L
 	return items, nil
 }
 
+const listAllAlertTypes = `-- name: ListAllAlertTypes :many
+SELECT ta.description, COUNT(a.id) as count
+FROM type_alert ta
+LEFT JOIN alert a ON a.idtypealert = ta.id
+GROUP BY ta.description
+`
+
+type ListAllAlertTypesRow struct {
+	Description string `json:"description"`
+	Count       int64  `json:"count"`
+}
+
+func (q *Queries) ListAllAlertTypes(ctx context.Context) ([]ListAllAlertTypesRow, error) {
+	rows, err := q.db.Query(ctx, listAllAlertTypes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllAlertTypesRow
+	for rows.Next() {
+		var i ListAllAlertTypesRow
+		if err := rows.Scan(&i.Description, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAllPatients = `-- name: ListAllPatients :many
+SELECT id, name, birth_date, gender, address, emergency_contact, created_at FROM patient
+`
+
+func (q *Queries) ListAllPatients(ctx context.Context) ([]Patient, error) {
+	rows, err := q.db.Query(ctx, listAllPatients)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Patient
+	for rows.Next() {
+		var i Patient
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.BirthDate,
+			&i.Gender,
+			&i.Address,
+			&i.EmergencyContact,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCaregiversByPatient = `-- name: ListCaregiversByPatient :many
+SELECT
+    u.id,
+    u.name
+FROM users u
+JOIN user_patient up ON up.id_user = u.id
+WHERE up.id_patient = $1
+`
+
+type ListCaregiversByPatientRow struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
+func (q *Queries) ListCaregiversByPatient(ctx context.Context, idPatient int64) ([]ListCaregiversByPatientRow, error) {
+	rows, err := q.db.Query(ctx, listCaregiversByPatient, idPatient)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCaregiversByPatientRow
+	for rows.Next() {
+		var i ListCaregiversByPatientRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listDevices = `-- name: ListDevices :many
 SELECT
     d.id,
@@ -375,6 +918,45 @@ func (q *Queries) ListDevices(ctx context.Context) ([]ListDevicesRow, error) {
 	return items, nil
 }
 
+const listLastAlertsByPatient = `-- name: ListLastAlertsByPatient :many
+SELECT
+    a.id,
+    a.date,
+    ta.description AS type
+FROM alert a
+JOIN device d ON d.id = a.idDevice
+JOIN type_alert ta ON ta.id = a.idTypeAlert
+WHERE d.id_patient = $1
+ORDER BY a.date DESC
+LIMIT 5
+`
+
+type ListLastAlertsByPatientRow struct {
+	ID   int32              `json:"id"`
+	Date pgtype.Timestamptz `json:"date"`
+	Type string             `json:"type"`
+}
+
+func (q *Queries) ListLastAlertsByPatient(ctx context.Context, idPatient int64) ([]ListLastAlertsByPatientRow, error) {
+	rows, err := q.db.Query(ctx, listLastAlertsByPatient, idPatient)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLastAlertsByPatientRow
+	for rows.Next() {
+		var i ListLastAlertsByPatientRow
+		if err := rows.Scan(&i.ID, &i.Date, &i.Type); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPatients = `-- name: ListPatients :many
 SELECT id, name, birth_date, gender, address, emergency_contact, created_at FROM patient
 ORDER BY name ASC
@@ -382,6 +964,41 @@ ORDER BY name ASC
 
 func (q *Queries) ListPatients(ctx context.Context) ([]Patient, error) {
 	rows, err := q.db.Query(ctx, listPatients)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Patient
+	for rows.Next() {
+		var i Patient
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.BirthDate,
+			&i.Gender,
+			&i.Address,
+			&i.EmergencyContact,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPatientsByUser = `-- name: ListPatientsByUser :many
+SELECT p.id, p.name, p.birth_date, p.gender, p.address, p.emergency_contact, p.created_at
+FROM patient p
+JOIN user_patient up ON up.id_patient = p.id
+WHERE up.id_user = $1
+`
+
+func (q *Queries) ListPatientsByUser(ctx context.Context, idUser int64) ([]Patient, error) {
+	rows, err := q.db.Query(ctx, listPatientsByUser, idUser)
 	if err != nil {
 		return nil, err
 	}
@@ -465,6 +1082,122 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 			&i.Role,
 			&i.LastAccess,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const topPatientsByAlerts24h = `-- name: TopPatientsByAlerts24h :many
+SELECT
+  p.id,
+  p.name,
+  COUNT(a.id) as alerts24h
+FROM patient p
+JOIN device d ON d.id_patient = p.id
+JOIN alert a ON a.idDevice = d.id
+WHERE a.date >= NOW() - INTERVAL '24 hours'
+GROUP BY p.id
+ORDER BY alerts24h DESC
+`
+
+type TopPatientsByAlerts24hRow struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Alerts24h int64  `json:"alerts24h"`
+}
+
+func (q *Queries) TopPatientsByAlerts24h(ctx context.Context) ([]TopPatientsByAlerts24hRow, error) {
+	rows, err := q.db.Query(ctx, topPatientsByAlerts24h)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TopPatientsByAlerts24hRow
+	for rows.Next() {
+		var i TopPatientsByAlerts24hRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Alerts24h); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const topPatientsByAlerts7d = `-- name: TopPatientsByAlerts7d :many
+SELECT
+  p.id,
+  p.name,
+  COUNT(a.id) as alerts7d
+FROM patient p
+JOIN device d ON d.id_patient = p.id
+JOIN alert a ON a.idDevice = d.id
+WHERE a.date >= NOW() - INTERVAL '7 days'
+GROUP BY p.id
+ORDER BY alerts7d DESC
+`
+
+type TopPatientsByAlerts7dRow struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Alerts7d int64  `json:"alerts7d"`
+}
+
+func (q *Queries) TopPatientsByAlerts7d(ctx context.Context) ([]TopPatientsByAlerts7dRow, error) {
+	rows, err := q.db.Query(ctx, topPatientsByAlerts7d)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TopPatientsByAlerts7dRow
+	for rows.Next() {
+		var i TopPatientsByAlerts7dRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Alerts7d); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const topPatientsByAlertsTotal = `-- name: TopPatientsByAlertsTotal :many
+SELECT
+  p.id,
+  p.name,
+  COUNT(a.id) as totalAlerts
+FROM patient p
+JOIN device d ON d.id_patient = p.id
+JOIN alert a ON a.idDevice = d.id
+GROUP BY p.id
+ORDER BY totalAlerts DESC
+`
+
+type TopPatientsByAlertsTotalRow struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Totalalerts int64  `json:"totalalerts"`
+}
+
+func (q *Queries) TopPatientsByAlertsTotal(ctx context.Context) ([]TopPatientsByAlertsTotalRow, error) {
+	rows, err := q.db.Query(ctx, topPatientsByAlertsTotal)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TopPatientsByAlertsTotalRow
+	for rows.Next() {
+		var i TopPatientsByAlertsTotalRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Totalalerts); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

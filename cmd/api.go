@@ -15,7 +15,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5"
+	"github.com/EdgarPFernandes/SecureVitalV2_backend/middleware"
+	//"github.com/EdgarPFernandes/SecureVitalV2_backend/internal/dashboard"
 )
+
 
 type application struct {
 	config config
@@ -34,6 +37,7 @@ type dbConfig struct {
 
 func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
+	r.Use(enableCORS)
 
 	r.Use(middleware.RequestID) //important for rate limiting
 	r.Use(middleware.RealIP)    //important for rate limiting and analytics
@@ -48,6 +52,9 @@ func (app *application) mount() http.Handler {
 
 	usersService := users.NewService(repo.New(app.db), repo.New(app.db), app.db)
 	usersHandler := users.NewHandler(usersService)
+
+	//dashboardService := dashboard.NewService(repo.New(app.db))
+	//dashboardHandler := dashboard.NewHandler(dashboardService)
 
 	alertsService := alerts.NewService(repo.New(app.db), repo.New(app.db), app.db)
 	alertsHandler := alerts.NewHandler(alertsService)
@@ -65,30 +72,46 @@ func (app *application) mount() http.Handler {
 		r.Post("/register", usersHandler.RegisterUser)
 		r.Post("/login", usersHandler.Login)
 
+		r.Get("/alerts", middlewareCors.CORS(alertsHandler.ListAlerts))
+		
+
 		r.Group(func(r chi.Router) {
 
 			r.Use(auth.JWTMiddleware)
-			r.Use(auth.RequireRole("admin"))
 
-			r.Get("/alerts", alertsHandler.ListAlerts)
-
-			r.Post("/alerts", alertsHandler.CreateAlert)
-
-			r.Get("/type_alerts", typeAlertsHandler.ListAlertTypes)
-
-			r.Post("/type_alerts", typeAlertsHandler.CreateAlertTypes)
-
-			r.Get("/patients", patientsHandler.ListPatients)
-
-			r.Post("/patients", patientsHandler.CreatePatient)
-
+			r.Get("/me", usersHandler.Me)
 			r.Get("/patients/{patient_id}/alerts", patientsHandler.ListAlertsByPatient)
 
-			r.Get("/devices", devicesHandler.ListDevices)
+			r.Group(func(r chi.Router) {
+				r.Use(auth.RequireRole("admin", "gestor"))
 
-			r.Post("/devices", devicesHandler.CreateDevice)
+				r.Get("/admin/dashboard", usersHandler.AdminDashboard)
 
-			r.Get("/users", usersHandler.ListUsers)
+				r.Post("/alerts", alertsHandler.CreateAlert)
+
+				r.Get("/type_alerts", typeAlertsHandler.ListAlertTypes)
+
+				r.Post("/type_alerts", typeAlertsHandler.CreateAlertTypes)
+
+				r.Get("/patients", patientsHandler.ListPatients)
+
+				r.Post("/patients", patientsHandler.CreatePatient)
+
+
+				r.Get("/devices", devicesHandler.ListDevices)
+
+				r.Post("/devices", devicesHandler.CreateDevice)
+
+				r.Get("/users", usersHandler.ListUsers)
+
+				r.Get("/patients/{id}/dashboard",usersHandler.PatientDashboard)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(auth.RequireRole("user"))
+
+				r.Get("/me/dashboard", usersHandler.Dashboard)
+			})
 		})
 	})
 
