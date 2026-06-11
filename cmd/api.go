@@ -72,6 +72,7 @@ func (app *application) mount() http.Handler {
 		r.Post("/register", usersHandler.RegisterUser)
 		r.Post("/login", usersHandler.Login)
 
+		r.Post("/alerts", alertsHandler.CreateAlert)
 		r.Get("/alerts", middlewareCors.CORS(alertsHandler.ListAlerts))
 		
 
@@ -86,8 +87,6 @@ func (app *application) mount() http.Handler {
 				r.Use(auth.RequireRole("admin", "gestor"))
 
 				r.Get("/admin/dashboard", usersHandler.AdminDashboard)
-
-				r.Post("/alerts", alertsHandler.CreateAlert)
 
 				r.Get("/type_alerts", typeAlertsHandler.ListAlertTypes)
 
